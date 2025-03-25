@@ -34,7 +34,7 @@ func TestConn(t *testing.T) {
 	var eg errgroup.Group
 	eg.Go(func() error {
 		var err error
-		c1, err = Open(key1, key2.Public, options...)
+		c1, err = Open(t.Context(), key1, key2.Public, options...)
 		if err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func TestConn(t *testing.T) {
 	})
 	eg.Go(func() error {
 		var err error
-		c2, err = Open(key2, key1.Public, options...)
+		c2, err = Open(t.Context(), key2, key1.Public, options...)
 		if err != nil {
 			return err
 		}

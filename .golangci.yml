@@ -1,0 +1,22 @@
+run:
+  concurrency: 4
+  timeout: 5m
+  tests: true
+linters:
+  presets:
+    - bugs
+    - error
+    - style
+    - import
+    - performance
+    - complexity
+    - module
+    - test
+    - comment
+  disable:
+    - depguard
+    - exhaustruct
+    - gochecknoinits
+    - gci
+    - err113 # TODO: for package exported errors and cleaner error handling
+    - wrapcheck # TODO: for cleaner error messages

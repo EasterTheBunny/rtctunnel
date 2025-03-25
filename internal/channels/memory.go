@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"context"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -10,6 +11,7 @@ func init() {
 	RegisterFactory("memory", func(addr string) (Channel, error) {
 		addr = addr[len("memory://"):]
 		ch, err := newMemoryChannel(addr)
+
 		return ch, err
 	})
 }
@@ -30,13 +32,13 @@ func newMemoryChannel(addr string) (*memoryChannel, error) {
 	return &memoryChannel{prefix: addr}, nil
 }
 
-func (mch *memoryChannel) Send(key, data string) error {
+func (mch *memoryChannel) Send(_ context.Context, key, data string) error {
 	log.Debug().Str("key", key).Str("data", data).Msg("[MemoryChannel] sending")
 	mch.getChannel(key) <- data
 	return nil
 }
 
-func (mch *memoryChannel) Recv(key string) (data string, err error) {
+func (mch *memoryChannel) Recv(_ context.Context, key string) (data string, err error) {
 	log.Debug().Str("key", key).Msg("[MemoryChannel] receiving")
 	data = <-mch.getChannel(key)
 	return data, nil

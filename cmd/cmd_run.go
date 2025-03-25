@@ -61,7 +61,7 @@ var (
 				conn, ok := peerConns[peerPublicKey]
 				if !ok {
 					var err error
-					conn, err = peer.Open(cfg.KeyPair, peerPublicKey)
+					conn, err = peer.Open(cmd.Context(), cfg.KeyPair, peerPublicKey)
 					if err != nil {
 						log.Fatal().Err(err).Msg("failed to open peer connection")
 					}

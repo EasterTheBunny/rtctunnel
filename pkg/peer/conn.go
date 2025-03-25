@@ -106,7 +106,7 @@ func (conn *Conn) closeWithError(err error) error {
 }
 
 // Open opens a new Connection.
-func Open(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Option) (*Conn, error) {
+func Open(ctx context.Context, keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Option) (*Conn, error) {
 	conn := &Conn{
 		keypair:       keypair,
 		peerPublicKey: peerPublicKey,
@@ -169,7 +169,7 @@ func Open(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Opti
 			return nil, conn.closeWithError(context.Canceled)
 		}
 
-		err = sendSignal(keypair, peerPublicKey, &SignalMessage{
+		err = sendSignal(ctx, keypair, peerPublicKey, &SignalMessage{
 			SDP:           offer,
 			ICECandidates: iceCandidates,
 		}, options...)
@@ -177,7 +177,7 @@ func Open(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Opti
 			return nil, conn.closeWithError(fmt.Errorf("error sending offer: %w", err))
 		}
 
-		answer, err := recvSignal(keypair, peerPublicKey, options...)
+		answer, err := recvSignal(ctx, keypair, peerPublicKey, options...)
 		if err != nil {
 			return nil, conn.closeWithError(fmt.Errorf("error receiving webrtc answer: %w", err))
 		}
@@ -195,7 +195,7 @@ func Open(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Opti
 		}
 
 	} else {
-		offer, err := recvSignal(keypair, peerPublicKey, options...)
+		offer, err := recvSignal(ctx, keypair, peerPublicKey, options...)
 		if err != nil {
 			return nil, conn.closeWithError(fmt.Errorf("error receiving webrtc offer: %w", err))
 		}
@@ -224,7 +224,7 @@ func Open(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Opti
 			return nil, conn.closeWithError(context.Canceled)
 		}
 
-		err = sendSignal(keypair, peerPublicKey, &SignalMessage{
+		err = sendSignal(ctx, keypair, peerPublicKey, &SignalMessage{
 			SDP:           answer,
 			ICECandidates: iceCandidates,
 		}, options...)
@@ -247,8 +247,8 @@ type SignalMessage struct {
 	ICECandidates []string
 }
 
-func recvSignal(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Option) (*SignalMessage, error) {
-	bs, err := signal.Recv(keypair, peerPublicKey, options...)
+func recvSignal(ctx context.Context, keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signal.Option) (*SignalMessage, error) {
+	bs, err := signal.Recv(ctx, keypair, peerPublicKey, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -262,13 +262,13 @@ func recvSignal(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...signa
 	return &msg, nil
 }
 
-func sendSignal(keypair crypt.KeyPair, peerPublicKey crypt.Key, msg *SignalMessage, options ...signal.Option) error {
+func sendSignal(ctx context.Context, keypair crypt.KeyPair, peerPublicKey crypt.Key, msg *SignalMessage, options ...signal.Option) error {
 	bs, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
-	err = signal.Send(keypair, peerPublicKey, bs, options...)
+	err = signal.Send(ctx, keypair, peerPublicKey, bs, options...)
 	if err != nil {
 		return err
 	}

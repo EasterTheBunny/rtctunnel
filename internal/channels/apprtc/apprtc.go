@@ -1,6 +1,7 @@
 package apprtc
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +26,7 @@ func New() channels.Channel {
 }
 
 // Recv receives a message at the given key.
-func (c *apprtcChannel) Recv(key string) (data string, err error) {
+func (c *apprtcChannel) Recv(_ context.Context, key string) (data string, err error) {
 	conn, err := c.getConnection(key, "recv")
 	if err != nil {
 		return "", err
@@ -49,7 +50,7 @@ func (c *apprtcChannel) Recv(key string) (data string, err error) {
 }
 
 // Send sends a message to the given key with the given data.
-func (c *apprtcChannel) Send(key, data string) error {
+func (c *apprtcChannel) Send(_ context.Context, key, data string) error {
 	conn, err := c.getConnection(key, "send")
 	if err != nil {
 		return err

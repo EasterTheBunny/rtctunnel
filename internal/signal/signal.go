@@ -1,6 +1,8 @@
 package signal
 
 import (
+	"context"
+
 	"github.com/mr-tron/base58"
 
 	"github.com/rtctunnel/rtctunnel/internal/channels"
@@ -51,7 +53,7 @@ func SetDefaultOptions(options ...Option) {
 }
 
 // Send sends a message to a peer. Messages are encrypted and authenticated.
-func Send(keypair crypt.KeyPair, peerPublicKey crypt.Key, data []byte, options ...Option) error {
+func Send(ctx context.Context, keypair crypt.KeyPair, peerPublicKey crypt.Key, data []byte, options ...Option) error {
 	cfg, err := getConfig(options...)
 	if err != nil {
 		return err
@@ -59,17 +61,17 @@ func Send(keypair crypt.KeyPair, peerPublicKey crypt.Key, data []byte, options .
 	encrypted := keypair.Encrypt(peerPublicKey, data)
 	address := peerPublicKey.String() + "/" + keypair.Public.String()
 	encoded := base58.Encode(encrypted)
-	return cfg.channel.Send(address, encoded)
+	return cfg.channel.Send(ctx, address, encoded)
 }
 
 // Recv receives a message from a peer. Messages are encrypted and authenticated.
-func Recv(keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...Option) (data []byte, err error) {
+func Recv(ctx context.Context, keypair crypt.KeyPair, peerPublicKey crypt.Key, options ...Option) (data []byte, err error) {
 	cfg, err := getConfig(options...)
 	if err != nil {
 		return nil, err
 	}
 	address := keypair.Public.String() + "/" + peerPublicKey.String()
-	encoded, err := cfg.channel.Recv(address)
+	encoded, err := cfg.channel.Recv(ctx, address)
 	if err != nil {
 		return nil, err
 	}
