@@ -2,43 +2,49 @@ package apprtc
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+
 	"github.com/rtctunnel/rtctunnel/internal/channels"
 )
 
 func init() {
-	channels.RegisterFactory("apprtc", func(addr string) (channels.Channel, error) {
+	channels.RegisterFactory("apprtc", func(_ string) (channels.Channel, error) {
 		return New(), nil
 	})
 }
 
-// An apprtcChannel signals over apprtc.
-type apprtcChannel struct {
-}
+var _ channels.Channel = (*Channel)(nil)
 
-// New creates a new apprtcChannel.
-func New() channels.Channel {
-	return &apprtcChannel{}
+const DefaultAppRTCURL = "wss://apprtc-ws.webrtc.org/ws"
+
+// An apprtc.Channel signals over apprtc.
+type Channel struct{}
+
+// New creates a new apprtc.Channel.
+func New() *Channel {
+	return &Channel{}
 }
 
 // Recv receives a message at the given key.
-func (c *apprtcChannel) Recv(_ context.Context, key string) (data string, err error) {
-	conn, err := c.getConnection(key, "recv")
+func (c *Channel) Recv(ctx context.Context, key string) (string, error) {
+	conn, err := c.getConnection(ctx, key, "recv")
 	if err != nil {
 		return "", err
 	}
+
 	defer conn.Close()
 
 	var packet struct {
 		Message string `json:"msg"`
 		Error   string `json:"error"`
 	}
-	err = conn.ReadJSON(&packet)
-	if err != nil {
+
+	if err = conn.ReadJSON(&packet); err != nil {
 		return "", fmt.Errorf("error receiving packet: %w", err)
 	}
 
@@ -50,8 +56,8 @@ func (c *apprtcChannel) Recv(_ context.Context, key string) (data string, err er
 }
 
 // Send sends a message to the given key with the given data.
-func (c *apprtcChannel) Send(_ context.Context, key, data string) error {
-	conn, err := c.getConnection(key, "send")
+func (c *Channel) Send(ctx context.Context, key, data string) error {
+	conn, err := c.getConnection(ctx, key, "send")
 	if err != nil {
 		return err
 	}
@@ -68,29 +74,32 @@ func (c *apprtcChannel) Send(_ context.Context, key, data string) error {
 	return nil
 }
 
-func (c *apprtcChannel) getConnection(roomID, clientID string) (*websocket.Conn, error) {
-	url := "wss://apprtc-ws.webrtc.org/ws"
-	conn, resp, err := websocket.DefaultDialer.Dial(url, http.Header{
+func (c *Channel) getConnection(ctx context.Context, roomID, clientID string) (*websocket.Conn, error) {
+	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, DefaultAppRTCURL, http.Header{
 		"Origin": {"https://appr.tc"},
 	})
 	if err != nil {
 		var msg string
+
 		if resp.Body != nil {
-			bs, _ := ioutil.ReadAll(resp.Body)
+			bs, rErr := io.ReadAll(resp.Body)
 			msg = string(bs)
+
+			err = errors.Join(err, rErr, resp.Body.Close())
 		}
+
 		return nil, fmt.Errorf("error connecting to webrtc (msg=%s): %w", msg, err)
 	}
 
-	err = conn.WriteJSON(map[string]interface{}{
+	if err := conn.WriteJSON(map[string]any{
 		"cmd":      "register",
 		"roomid":   roomID,
 		"clientid": clientID,
-	})
-	if err != nil {
-		conn.Close()
+	}); err != nil {
+		err = errors.Join(err, conn.Close())
+
 		return nil, fmt.Errorf("error registering send client: %w", err)
 	}
 
-	return conn, err
+	return conn, nil
 }
