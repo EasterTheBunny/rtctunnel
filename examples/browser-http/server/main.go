@@ -13,9 +13,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/rtctunnel/rtctunnel/ext/js/localstorage"
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
-	"github.com/rtctunnel/rtctunnel/internal/peer"
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
+	"github.com/rtctunnel/rtctunnel/pkg/js/localstorage"
+	"github.com/rtctunnel/rtctunnel/pkg/peer"
 )
 
 const (

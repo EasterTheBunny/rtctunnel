@@ -12,8 +12,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
 	"github.com/rtctunnel/rtctunnel/internal/signal"
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
 )
 
 // Conn wraps an RTCPeerConnection so connections can be made and accepted.

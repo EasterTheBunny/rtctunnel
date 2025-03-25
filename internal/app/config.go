@@ -8,7 +8,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
 )
 
 type RouteType string

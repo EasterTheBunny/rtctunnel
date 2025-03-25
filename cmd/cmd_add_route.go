@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rtctunnel/rtctunnel/internal/app"
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
 )
 
 var (

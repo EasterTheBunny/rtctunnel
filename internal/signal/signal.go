@@ -3,10 +3,10 @@ package signal
 import (
 	"github.com/mr-tron/base58"
 
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
-	"github.com/rtctunnel/rtctunnel/pkg/channels"
-	_ "github.com/rtctunnel/rtctunnel/pkg/channels/apprtc"   // for the default apprtc channel
-	_ "github.com/rtctunnel/rtctunnel/pkg/channels/operator" // for the operator channel
+	"github.com/rtctunnel/rtctunnel/internal/channels"
+	_ "github.com/rtctunnel/rtctunnel/internal/channels/apprtc"   // for the default apprtc channel
+	_ "github.com/rtctunnel/rtctunnel/internal/channels/operator" // for the operator channel
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
 )
 
 type config struct {

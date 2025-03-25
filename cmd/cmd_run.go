@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rtctunnel/rtctunnel/internal/app"
-	"github.com/rtctunnel/rtctunnel/internal/crypt"
-	"github.com/rtctunnel/rtctunnel/internal/peer"
+	"github.com/rtctunnel/rtctunnel/internal/channels"
+	_ "github.com/rtctunnel/rtctunnel/internal/channels/operator"
 	"github.com/rtctunnel/rtctunnel/internal/signal"
-	"github.com/rtctunnel/rtctunnel/pkg/channels"
-	_ "github.com/rtctunnel/rtctunnel/pkg/channels/operator"
+	"github.com/rtctunnel/rtctunnel/pkg/crypt"
+	"github.com/rtctunnel/rtctunnel/pkg/peer"
 )
 
 var (
