@@ -18,5 +18,6 @@ linters:
     - exhaustruct
     - gochecknoinits
     - gci
+    - recvcheck
     - err113 # TODO: for package exported errors and cleaner error handling
     - wrapcheck # TODO: for cleaner error messages
