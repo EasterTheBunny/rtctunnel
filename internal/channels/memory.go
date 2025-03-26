@@ -16,6 +16,7 @@ func init() {
 	})
 }
 
+//nolint:gochecknoglobals
 var memoryChannels = struct {
 	sync.RWMutex
 	channels map[string]chan string
@@ -32,31 +33,49 @@ func newMemoryChannel(addr string) (*memoryChannel, error) {
 	return &memoryChannel{prefix: addr}, nil
 }
 
-func (mch *memoryChannel) Send(_ context.Context, key, data string) error {
+func (c *memoryChannel) Send(ctx context.Context, key, data string) error {
 	log.Debug().Str("key", key).Str("data", data).Msg("[MemoryChannel] sending")
-	mch.getChannel(key) <- data
+
+	select {
+	case c.getChannel(key) <- data:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	return nil
 }
 
-func (mch *memoryChannel) Recv(_ context.Context, key string) (data string, err error) {
+func (c *memoryChannel) Recv(ctx context.Context, key string) (string, error) {
 	log.Debug().Str("key", key).Msg("[MemoryChannel] receiving")
-	data = <-mch.getChannel(key)
+
+	var data string
+
+	select {
+	case data = <-c.getChannel(key):
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+
 	return data, nil
 }
 
-func (mch *memoryChannel) getChannel(key string) chan string {
-	key = mch.prefix + key
+func (c *memoryChannel) getChannel(key string) chan string {
+	key = c.prefix + key
+
 	memoryChannels.RLock()
-	ch, ok := memoryChannels.channels[key]
+	chMem, exists := memoryChannels.channels[key]
 	memoryChannels.RUnlock()
-	if !ok {
+
+	if !exists {
 		memoryChannels.Lock()
-		ch, ok = memoryChannels.channels[key]
-		if !ok {
-			ch = make(chan string, 1)
-			memoryChannels.channels[key] = ch
+
+		if chMem, exists = memoryChannels.channels[key]; !exists {
+			chMem = make(chan string, 1)
+			memoryChannels.channels[key] = chMem
 		}
+
 		memoryChannels.Unlock()
 	}
-	return ch
+
+	return chMem
 }
