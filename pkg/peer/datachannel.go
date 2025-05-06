@@ -22,7 +22,7 @@ func (addr dataChannelAddr) String() string {
 	return "webrtc://datachannel"
 }
 
-// A DataChannel implements the net.Conn interface over a webrtc data channel
+// DataChannel implements the net.Conn interface over a webrtc data channel.
 type DataChannel struct {
 	dc RTCDataChannel
 	rr ContextReadCloser
@@ -33,11 +33,9 @@ type DataChannel struct {
 	closeErr  error
 }
 
-// WrapDataChannel wraps an rtc data channel and implements the net.Conn
-// interface
+// WrapDataChannel wraps an RTC data channel and implements the net.Conn interface.
 func WrapDataChannel(rtcDataChannel RTCDataChannel) (*DataChannel, error) {
 	rr, rw := io.Pipe()
-
 	dc := &DataChannel{
 		dc: rtcDataChannel,
 		rr: ContextReadCloser{Context: context.Background(), ReadCloser: rr},
@@ -46,17 +44,19 @@ func WrapDataChannel(rtcDataChannel RTCDataChannel) (*DataChannel, error) {
 		openCond:  NewCond(),
 		closeCond: NewCond(),
 	}
+
 	dc.dc.OnClose(func() {
 		_ = dc.closeWithError(ErrClosedByPeer)
 	})
+
 	dc.dc.OnOpen(func() {
-		// for reasons I don't understand, when opened the data channel is not immediately available for use
-		time.Sleep(50 * time.Millisecond)
+		// for reasons I don't understand, when opened, the data channel is not immediately available for use
+		time.Sleep(50 * time.Millisecond) //nolint:mnd
 		dc.openCond.Signal()
 	})
+
 	dc.dc.OnMessage(func(data []byte) {
-		log.Debug().Bytes("data", data).
-			Msg("datachannel message")
+		log.Debug().Bytes("data", data).Msg("datachannel message")
 
 		if rw != nil {
 			_, err := rw.Write(data)
@@ -73,6 +73,7 @@ func WrapDataChannel(rtcDataChannel RTCDataChannel) (*DataChannel, error) {
 		if err == nil {
 			err = errors.New("datachannel closed for unknown reasons")
 		}
+
 		return nil, err
 	case <-dc.openCond.C:
 	}
@@ -80,15 +81,15 @@ func WrapDataChannel(rtcDataChannel RTCDataChannel) (*DataChannel, error) {
 	return dc, nil
 }
 
-func (dc *DataChannel) Read(b []byte) (n int, err error) {
+func (dc *DataChannel) Read(b []byte) (int, error) {
 	return dc.rr.Read(b)
 }
 
-func (dc *DataChannel) Write(b []byte) (n int, err error) {
-	err = dc.dc.Send(b)
-	if err != nil {
+func (dc *DataChannel) Write(b []byte) (int, error) {
+	if err := dc.dc.Send(b); err != nil {
 		return 0, err
 	}
+
 	return len(b), nil
 }
 
@@ -109,9 +110,11 @@ func (dc *DataChannel) SetDeadline(t time.Time) error {
 	if e := dc.SetReadDeadline(t); e != nil {
 		err = e
 	}
+
 	if e := dc.SetWriteDeadline(t); e != nil {
 		err = e
 	}
+
 	return err
 }
 
@@ -126,19 +129,26 @@ func (dc *DataChannel) SetWriteDeadline(t time.Time) error {
 func (dc *DataChannel) closeWithError(err error) error {
 	dc.closeCond.Do(func() {
 		e := dc.rr.Close()
+
 		if err == nil {
 			err = e
 		}
+
 		e = dc.rw.Close()
+
 		if err == nil {
 			err = e
 		}
+
 		e = dc.dc.Close()
+
 		if err == nil {
 			err = e
 		}
+
 		dc.closeErr = err
 	})
+
 	return err
 }
 
@@ -154,6 +164,7 @@ func (cr ContextReadCloser) Close() error {
 		cr.cancel()
 		cr.cancel = nil
 	}
+
 	return err
 }
 
@@ -166,12 +177,18 @@ func (cr ContextReadCloser) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-func (cr ContextReadCloser) Read(p []byte) (n int, err error) {
+func (cr ContextReadCloser) Read(p []byte) (int, error) {
+	var (
+		n   int
+		err error
+	)
+
 	done := make(chan struct{})
 	go func() {
 		n, err = cr.ReadCloser.Read(p)
 		close(done)
 	}()
+
 	select {
 	case <-done:
 		return n, err
@@ -188,28 +205,39 @@ type ContextWriteCloser struct {
 
 func (cw ContextWriteCloser) Close() error {
 	err := cw.WriteCloser.Close()
+
 	if cw.cancel != nil {
 		cw.cancel()
-		cw.cancel = nil
 	}
+
+	cw.cancel = nil
+
 	return err
 }
 
 func (cw ContextWriteCloser) SetWriteDeadline(t time.Time) error {
 	if cw.cancel != nil {
 		cw.cancel()
-		cw.cancel = nil
 	}
+
 	cw.Context, cw.cancel = context.WithDeadline(context.Background(), t)
+
 	return nil
 }
 
-func (cw ContextWriteCloser) Write(p []byte) (n int, err error) {
+func (cw ContextWriteCloser) Write(p []byte) (int, error) {
+	var (
+		n   int
+		err error
+	)
+
 	done := make(chan struct{})
+
 	go func() {
 		n, err = cw.WriteCloser.Write(p)
 		close(done)
 	}()
+
 	select {
 	case <-done:
 		return n, err
